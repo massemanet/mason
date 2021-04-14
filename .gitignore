@@ -1,0 +1,7 @@
+.rebar3
+ebin
+erl_crash.dump
+.rebar
+_build
+rebar3.crashdump
+*~
