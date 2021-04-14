@@ -72,11 +72,11 @@ emit_fun(Fun) ->
 %% show some interesting info
 emit_port(Port) ->
     case port_info(Port, name) of
-        "tcp_inet" -> wrap(["tcp:", inet_info(Port, port)]);
-        "udp_inet" -> wrap(["udp:", inet_info(Port, port)]);
-        "sctp_inet" -> wrap(["sctp:", inet_info(Port, port)]);
-        undefined -> wrap("dead");
-        Name -> wrap(Name)
+        "tcp_inet" -> wrap(["Port(tcp:", inet_info(Port, port), ")"]);
+        "udp_inet" -> wrap(["Port(udp:", inet_info(Port, port), ")"]);
+        "sctp_inet" -> wrap(["Port(sctp:", inet_info(Port, port), ")"]);
+        undefined -> wrap("Port(dead)");
+        Name -> wrap(["Port(", Name, ")"])
     end.
 
 %% a list is either a string, a proplist, or just a list. we map to
@@ -90,17 +90,17 @@ emit_list(List) ->
     end.
 
 emit_list([], undefined, R) ->
-    wrap(["[", lists:reverse(R), "]"]);
+    ["[", tl(lists:reverse(R)), "]"];
 emit_list([], {obj, O}, _) ->
-    wrap(["{", tl(lists:reverse(O)), "}"]);
+    ["{", tl(lists:reverse(O)), "}"];
 emit_list([], {str, S}, _) ->
     wrap(lists:reverse(S));
 emit_list([{K, V}|T], {obj, O}, R) ->
     emit_list(T, {obj, [json(V), ":", json(K), ","|O]}, [emit_tuple({K, V})|R]);
 emit_list([I|T], {str, S}, R) when ?is_printable(I) ->
-    emit_list(T, [I|S], [emit_number(I)|R]);
+    emit_list(T, {str, [I|S]}, [emit_number(I)|R]);
 emit_list([E|T], _, R) ->
-    emit_list(T, undefined, [E|R]).
+    emit_list(T, undefined, [json(E), ","|R]).
 
 -define(EI(_E, _T), 0 =< element(_E, _T), element(_E, _T) =< 255).
 -define(EA(_E, _T), is_atom(element(_E, _T))).
@@ -123,8 +123,7 @@ emit_map(Map) ->
     ["{", tl(lists:reverse(maps:fold(fun emit_map/3, [], Map))), "}"].
 
 emit_map(K, V, O) ->
-    [json(K), ":", json(V), ","|O].
-
+    [json(V), ":", json(K), ","|O].
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% utils
