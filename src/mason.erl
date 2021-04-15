@@ -83,7 +83,7 @@ emit_port(Port) ->
 %% a string, an object, or a list, respectively
 emit_list(List) ->
     case List of
-        [] -> [];
+        [] -> "[]";
         [{_, _}|_] -> emit_list(List, {obj, []}, []);
         [I|_] when ?is_printable(I) -> emit_list(List, {str, ""}, []);
         _ -> emit_list(List, undefined, [])

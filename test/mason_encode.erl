@@ -45,6 +45,12 @@ t_12_test() ->
 t_13_test() ->
     assert_re('\\["a","b","c"\\]',
               {a, b, c}).
+t_14_test() ->
+    assert_re('\\[\\]',
+              []).
+t_15_test() ->
+    assert_re('\\[\\]',
+              {}).
 
 assert_eq(Goal, In) ->
     ?assertEqual(atom_to_list(Goal), mason:encode(In)).
