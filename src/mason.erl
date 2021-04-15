@@ -10,7 +10,7 @@ encode(X) ->
 encode(X, _Opts) ->
     lists:flatten(json(X)).
 
-json(Bin)   when is_binary(Bin)    -> emit_binary(Bin);
+json(Bin)   when is_bitstring(Bin) -> emit_binary(Bin);
 json(Atom)  when is_atom(Atom)     -> emit_atom(Atom);
 json(N)     when is_number(N)      -> emit_number(N);
 json(Pid)   when is_pid(Pid)       -> emit_pid(Pid);
