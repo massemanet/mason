@@ -129,7 +129,7 @@ emit_map(K, V, O) ->
 %% utils
 
 hex(I) when I < 10 -> I+$0;
-hex(I) -> I+$w.
+hex(I) -> I+$W.
 
 fun_info(Fun, Tag) ->
     {Tag, Val} = erlang:fun_info(Fun, Tag),

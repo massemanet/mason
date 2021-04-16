@@ -51,6 +51,9 @@ t_14_test() ->
 t_15_test() ->
     assert_re('\\[\\]',
               {}).
+t_16_test() ->
+    assert_eq('"0x0123456789abcdef"',
+              <<0:4,1:4,2:4,3:4,4:4,5:4,6:4,7:4,8:4,9:4,10:4,11:4,12:4,13:4,14:4,15:4>>).
 
 assert_eq(Goal, In) ->
     ?assertEqual(atom_to_list(Goal), mason:encode(In)).
