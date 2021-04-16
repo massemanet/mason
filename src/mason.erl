@@ -1,14 +1,27 @@
 -module(mason).
 
 -export(
-   [encode/1,
-    encode/2]).
+   [encode/1, encode/2,
+    decode/1, decode/2]).
 
 encode(X) ->
     encode(X, #{}).
 
 encode(X, _Opts) ->
     lists:flatten(json(X)).
+
+decode(JSON) ->
+    decode(JSON, #{}).
+
+decode(JSON, _Opts) ->
+    try lift(mason_parser:parse(lift(mason_lexer:string(JSON))))
+    catch throw:Err -> Err
+    end.
+
+lift({ok, Val, _}) -> Val;
+lift({ok, Val}) -> Val;
+lift({error, {Line, mason_lexer, Err}, _}) -> throw({error, {lexer, Line, Err}});
+lift({error, {Line, mason_parser, Err}}) -> throw({error, {syntax, Line, lists:flatten(Err)}}).
 
 json(Bin)   when is_bitstring(Bin) -> emit_binary(Bin);
 json(Atom)  when is_atom(Atom)     -> emit_atom(Atom);
