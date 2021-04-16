@@ -54,6 +54,9 @@ t_15_test() ->
 t_16_test() ->
     assert_eq('"0x0123456789abcdef"',
               <<0:4,1:4,2:4,3:4,4:4,5:4,6:4,7:4,8:4,9:4,10:4,11:4,12:4,13:4,14:4,15:4>>).
+t_17_test() ->
+    assert_eq('"127.0.0.1:666"',
+              {{127,0,0,1}, 666}).
 
 assert_eq(Goal, In) ->
     ?assertEqual(atom_to_list(Goal), mason:encode(In)).

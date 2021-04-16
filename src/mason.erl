@@ -104,12 +104,16 @@ emit_list([E|T], _, R) ->
 
 -define(EI(_E, _T), 0 =< element(_E, _T), element(_E, _T) =< 255).
 -define(EA(_E, _T), is_atom(element(_E, _T))).
--define(is_ip(_IP), tuple_size(_IP) == 4, ?EI(1, _IP), ?EI(2, _IP), ?EI(3, _IP), ?EI(4, _IP)).
 -define(is_mfa(_MFA), tuple_size(_MFA) == 3, ?EA(1, _MFA), ?EA(2, _MFA), ?EI(3, _MFA)).
+-define(is_ip(_IP), tuple_size(_IP) == 4, ?EI(1, _IP), ?EI(2, _IP), ?EI(3, _IP), ?EI(4, _IP)).
+-define(is_ipp(_IPP), tuple_size(_IPP) == 2, ?is_ip(element(1, _IPP)), is_integer(element(2, _IPP))).
 
 %% we map tuples to json lists, except IP numbers and MFAs.
+emit_tuple(IPP) when ?is_ipp(IPP)->
+    {IP, Port} = IPP,
+    wrap([ip(IP), ":", integer_to_list(Port)]);
 emit_tuple(IP) when ?is_ip(IP)->
-    wrap(string:join([integer_to_list(I) || I <- tuple_to_list(IP)], "."));
+    wrap(ip(IP));
 emit_tuple(MFA) when ?is_mfa(MFA) ->
     {M, F, A} = MFA,
     wrap([atom_to_list(M), ":", atom_to_list(F), "/", integer_to_list(A)]);
@@ -130,6 +134,9 @@ emit_map(K, V, O) ->
 
 hex(I) when I < 10 -> I+$0;
 hex(I) -> I+$W.
+
+ip({I1, I2, I3, I4}) ->
+    string:join([integer_to_list(I) || I <- [I1, I2, I3, I4]], ".").
 
 fun_info(Fun, Tag) ->
     {Tag, Val} = erlang:fun_info(Fun, Tag),
