@@ -8,9 +8,11 @@ WS = [\n\r\t\s]+
 
 % number
 DIGIT = [0-9]
-INT = ({DIGIT}|[1-9]{DIGIT}+)
+DIGITS = ({DIGIT}|[1-9]{DIGIT}+)
+SIGN = [+-]
+INT = {SIGN}?{DIGITS}
 FLOAT = {INT}\.{DIGIT}+
-EXP = [eE][+-]*{DIGIT}+
+EXP = [eE]{SIGN}?{DIGIT}+
 
 % chars
 HEX = [0-9A-Fa-f]
