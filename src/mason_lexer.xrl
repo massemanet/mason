@@ -1,7 +1,7 @@
 Definitions.
 
 % separators
-SEP = [|]|{|}|:|,
+SEP = \[|\]|{|}|:|,
 
 % whitespace
 WS = [\n\r\t\s]+
