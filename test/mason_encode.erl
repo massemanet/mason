@@ -57,6 +57,32 @@ t_16_test() ->
 t_17_test() ->
     assert_eq('"127.0.0.1:666"',
               {{127,0,0,1}, 666}).
+t_18_test() ->
+    assert_eq('[["case_clause",["listening","closed"]],["pamp_sctp:check_state/4:254","pamp_psock:socket_read/1:457"]]',
+              {{case_clause,{listening,closed}},
+               [{pamp_sctp,check_state,4,
+                 [{file,"/build/apps/pamp/src/pamp_sctp.erl"}, {line,254}]},
+                {pamp_psock,socket_read,1,
+                 [{file,"/build/apps/pamp/src/pamp_psock.erl"}, {line,457}]}]}).
+
+t_19_test() ->
+    assert_eq('[["a","b"],["c"]]',
+              {{a, b}, [c]}).
+t_20_test() ->
+    assert_eq('[33,44,0]',
+              [33,44,0]).
+t_21_test() ->
+    assert_eq('"!,"',
+              [33,44]).
+t_22_test() ->
+    assert_eq('{"a":"b","c":"d"}',
+              {{a, b}, {c, d}}).
+t_23_test() ->
+    assert_eq('{"a":"b","c":"d"}',
+              [{a, b}, {c, d}]).
+t_24_test() ->
+    assert_eq('[["a","b"],[1,"d"]]',
+              [{a, b}, {1, d}]).
 
 assert_eq(Goal, In) ->
     ?assertEqual(atom_to_list(Goal), mason:encode(In)).

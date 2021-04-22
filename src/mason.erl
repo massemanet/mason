@@ -37,7 +37,18 @@ json(Map)   when is_map(Map)       -> emit_map(Map).
 emit_binary(Bin) ->
     emit_binary(Bin, "", "").
 
+-define(ipp(_A, _B, _C, _D, _P), {{_A, _B, _C, _D}, _P}).
+-define(ip(_A, _B, _C, _D), {_A, _B, _C, _D}).
+-define(mfa(_M, _F, _A), {_M, _F, _A}).
+-define(stack(_M, _F, _A, _L), {_M, _F, _A, [_, {line, _L}]}).
+-define(is_byte(_B), 0 =< _B, _B =< 255).
+-define(is_long(_L), 0 =< _L, _L =< 65535).
+-define(is_ipp(_A, _B, _C, _D, _P), ?is_ip(_A, _B, _C, _D), ?is_long(_P)).
+-define(is_ip(_A, _B, _C, _D), ?is_byte(_A), ?is_byte(_B), ?is_byte(_C), ?is_byte(_D)).
+-define(is_mfa(_M, _F, _A), is_atom(_M), is_atom(_F), is_integer(_A)).
+-define(is_stack(_M, _F, _A, _L), ?is_mfa(_M, _F, _A), is_integer(_L)).
 -define(is_printable(C), C==9; C==10; C==13; 32 =< C andalso C=< 126).
+-define(is_proplist(_T), tuple_size(_T) =:= 2, is_atom(element(1, _T))).
 
 %% we encode to "0xcafe" and "Str" in parallel. If both work we keep
 %% "Str".
@@ -97,7 +108,7 @@ emit_port(Port) ->
 emit_list(List) ->
     case List of
         [] -> "[]";
-        [{_, _}|_] -> emit_list(List, {obj, []}, []);
+        [PL|_] when ?is_proplist(PL) -> emit_list(List, {obj, []}, []);
         [I|_] when ?is_printable(I) -> emit_list(List, {str, ""}, []);
         _ -> emit_list(List, undefined, [])
     end.
@@ -108,28 +119,22 @@ emit_list([], {obj, O}, _) ->
     ["{", tl(lists:reverse(O)), "}"];
 emit_list([], {str, S}, _) ->
     wrap(lists:reverse(S));
-emit_list([{K, V}|T], {obj, O}, R) ->
-    emit_list(T, {obj, [json(V), ":", json(K), ","|O]}, [emit_tuple({K, V})|R]);
+emit_list([{K, V}|T], {obj, O}, R) when ?is_proplist({K, V}) ->
+    emit_list(T, {obj, [json(V), ":", json(K), ","|O]}, [emit_tuple({K, V}), ","|R]);
 emit_list([I|T], {str, S}, R) when ?is_printable(I) ->
-    emit_list(T, {str, [I|S]}, [emit_number(I)|R]);
+    emit_list(T, {str, [I|S]}, [emit_number(I), ","|R]);
 emit_list([E|T], _, R) ->
     emit_list(T, undefined, [json(E), ","|R]).
 
--define(EI(_E, _T), 0 =< element(_E, _T), element(_E, _T) =< 255).
--define(EA(_E, _T), is_atom(element(_E, _T))).
--define(is_mfa(_MFA), tuple_size(_MFA) == 3, ?EA(1, _MFA), ?EA(2, _MFA), ?EI(3, _MFA)).
--define(is_ip(_IP), tuple_size(_IP) == 4, ?EI(1, _IP), ?EI(2, _IP), ?EI(3, _IP), ?EI(4, _IP)).
--define(is_ipp(_IPP), tuple_size(_IPP) == 2, ?is_ip(element(1, _IPP)), is_integer(element(2, _IPP))).
-
-%% we map tuples to json lists, except IP numbers and MFAs.
-emit_tuple(IPP) when ?is_ipp(IPP)->
-    {IP, Port} = IPP,
-    wrap([ip(IP), ":", integer_to_list(Port)]);
-emit_tuple(IP) when ?is_ip(IP)->
-    wrap(ip(IP));
-emit_tuple(MFA) when ?is_mfa(MFA) ->
-    {M, F, A} = MFA,
-    wrap([atom_to_list(M), ":", atom_to_list(F), "/", integer_to_list(A)]);
+%% we map tuples to json lists, except IP numbers, {IP, Port}, stack traces, and MFAs.
+emit_tuple(?stack(M, F, A, L)) when ?is_stack(M, F, A, L) ->
+    wrap([mfa_(M, F, A), ":", integer_to_list(L)]);
+emit_tuple(?ipp(A, B, C, D, Port)) when ?is_ipp(A, B, C, D, Port) ->
+    wrap([ip(A, B, C, D), ":", integer_to_list(Port)]);
+emit_tuple(?ip(A, B, C, D)) when ?is_ip(A, B, C, D)->
+    wrap(ip(A, B, C, D));
+emit_tuple(?mfa(M, F, A)) when ?is_mfa(M, F, A) ->
+    wrap(mfa_(M, F, A));
 emit_tuple(T) ->
     emit_list(tuple_to_list(T)).
 
@@ -148,8 +153,11 @@ emit_map(K, V, O) ->
 hex(I) when I < 10 -> I+$0;
 hex(I) -> I+$W.
 
-ip({I1, I2, I3, I4}) ->
+ip(I1, I2, I3, I4) ->
     string:join([integer_to_list(I) || I <- [I1, I2, I3, I4]], ".").
+
+mfa_(M, F, A) ->
+    [atom_to_list(M), ":", atom_to_list(F), "/", integer_to_list(A)].
 
 fun_info(Fun, Tag) ->
     {Tag, Val} = erlang:fun_info(Fun, Tag),
