@@ -8,7 +8,7 @@ Nonterminals
 Terminals
   ws
   '[' ']' '{' '}' ',' ':'
-  float int bin string
+  number string
   true false null.
 
 Rootsymbol element.
@@ -20,35 +20,36 @@ element -> ws value ws  : '$2'.
 
 value -> object   : '$1'.
 value -> array    : '$1'.
-value -> float    : val('$1').
-value -> int      : val('$1').
-value -> bin      : val('$1').
+value -> number   : val('$1').
 value -> string   : val('$1').
 value -> true     : true.
 value -> false    : false.
 value -> null     : undefined.
 
-object -> '{' '}'         : #{}.
-object -> '{' ws '}'      : #{}.
+object -> '{' '}'         : object(undefined, undefined).
+object -> '{' ws '}'      : object(undefined, undefined).
 object -> '{' members '}' : '$2'.
 
-members -> member             : '$1'.
-members -> members ',' member : maps:merge('$1', '$3').
+members -> member             : object(undefined, '$1').
+members -> members ',' member : object('$1', '$3').
 
 member -> key ':' element : #{'$1' => '$3'}.
 
-key -> string       : val('$1').
-key -> string ws    : val('$1').
-key -> ws string    : val('$2').
-key -> ws string ws : val('$2').
+key -> string       : key('$1').
+key -> string ws    : key('$1').
+key -> ws string    : key('$2').
+key -> ws string ws : key('$2').
 
-array -> '[' ']'          : [].
-array -> '[' ws ']'       : [].
+array -> '[' ']'          : array(undefined, undefined).
+array -> '[' ws ']'       : array(undefined, undefined).
 array -> '[' elements ']' : '$2'.
 
-elements -> element              : ['$1'].
-elements -> elements ',' element : '$1' ++ ['$3'].
+elements -> element              : array(undefined, '$1').
+elements -> elements ',' element : array('$1', '$3').
 
 Erlang code.
 
-val({_, _, E}) -> E.
+val({Class, _, Val}) -> mason:dec(val, Class, Val).
+key({Class, _, Val}) -> mason:dec(key, Class, Val).
+array(Array, Element) -> mason:dec(array, Array, Element).
+object(Object, Member) -> mason:dec(object, Object, Member).

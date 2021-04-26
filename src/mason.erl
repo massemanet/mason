@@ -4,19 +4,61 @@
    [encode/1, encode/2,
     decode/1, decode/2]).
 
+-export(
+   [dec/3]).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%API
+
 encode(X) ->
     encode(X, #{}).
 
-encode(X, _Opts) ->
-    lists:flatten(json(X)).
+encode(X, Opts) ->
+    store_opts(Opts),
+    try lists:flatten(json(X))
+    after delete_opts(Opts)
+    end.
 
 decode(JSON) ->
     decode(JSON, #{}).
 
-decode(JSON, _Opts) ->
-    try lift(mason_parser:parse(lift(mason_lexer:string(JSON))))
+decode(JSON, Opts) ->
+    store_opts(Opts),
+    try lift(mason_parser:parse(lift(mason_lexer:string(to_str(JSON)))))
     catch throw:Err -> Err
+    after delete_opts(Opts)
     end.
+
+to_str(X) when is_atom(X) -> atom_to_list(X);
+to_str(X) when is_binary(X) -> binary_to_list(X);
+to_str(X) when is_list(X) -> X.
+
+%% decode json -> erlang
+dec(val, number, {int, Str}) -> list_to_integer(Str);
+dec(val, number, {float, Str}) -> list_to_float(Str);
+dec(val, number, {intexp, Str}) -> intexp_to_float(Str);
+dec(val, number, {floatexp, Str}) -> list_to_float(Str);
+dec(val, string, {hex, Str}) -> hex_to_binary(Str);
+dec(val, string, {chars, Str}) -> Str;
+dec(key, Class, {Type, Str}) -> dec_key(Class, Type, Str);
+dec(array, undefined, undefined) -> [];
+dec(array, undefined, Val) -> [Val];
+dec(array, Vals, Val) -> lists:reverse([Val|lists:reverse(Vals)]);
+dec(object, undefined, undefined) -> #{};
+dec(object, undefined, Member) -> Member;
+dec(object, Members, Member) -> maps:merge(Members, Member).
+
+dec_key(Class, Type, Str) ->
+    case get_opt(keys) of
+        undefined -> Str;
+        atom -> list_to_atom(Str);
+        string -> Str;
+        binary -> list_to_binary(Str);
+        term -> dec(val, Class, {Type, Str})
+    end.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% implementation
 
 lift({ok, Val, _}) -> Val;
 lift({ok, Val}) -> Val;
@@ -171,6 +213,40 @@ inet_info(Port, port) ->
 
 wrap(X) ->
     [$", X, $"].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% decoding json -> erlang
+
+intexp_to_float(S) ->
+    [A,B] = re:split(S, "[Ee]", [{return, list}]),
+    list_to_float(lists:append([A,".0e", B])).
+
+hex_to_binary("0x"++R) ->
+    hex_to_binary(R, <<>>).
+
+-define(upcase(C), $A =< C, C =< $F).
+-define(lowcase(C), $a =< C, C =< $f).
+-define(digit(C), $0 =< C, C =< $9).
+hex_to_binary("", O) ->
+    O;
+hex_to_binary([C|R], O) when ?upcase(C) ->
+    hex_to_binary(R, <<O/bitstring, (C-$A+10):4>>);
+hex_to_binary([C|R], O) when ?lowcase(C) ->
+    hex_to_binary(R, <<O/bitstring, (C-$a+10):4>>);
+hex_to_binary([C|R], O) when ?digit(C) ->
+    hex_to_binary(R, <<O/bitstring, (C-$0):4>>).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% options
+
+store_opts(Opts) ->
+    maps:map(fun(K, V) -> put({mason, K}, V) end, Opts).
+
+delete_opts(Opts) ->
+    maps:map(fun(K, _) -> erase({mason, K}) end, Opts).
+
+get_opt(K) ->
+    get({mason, K}).
 
 %% maybe_ts(TS, Conf) ->
 %%     case Conf of
