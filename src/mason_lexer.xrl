@@ -21,6 +21,16 @@ ESC = \\[bfnrt"/\\]
 HEXESC = \\u{HEX}{HEX}{HEX}{HEX}
 CHARS = ({CHAR}|{ESC}|{HEXESC})*
 
+% time
+YEAR = [0-9][0-9][0-9][0-9]
+MONTH = (0[1-9]|1[0-2])
+DAY = (0[1-9]|[12][0-9]|3[0-1])
+HOUR = ([01][0-9]|2[0-4])
+MIN = [0-5][0-9]
+SEC = ([0-5][0-9]|60)
+FRAC = (\.[0-9]+)
+TZ = (Z|[+-]{HOUR}:{MIN})
+
 % reserved words
 WORDS = true|false|null
 
@@ -39,8 +49,16 @@ Rules.
 {FLOAT}{EXP} :
   {token, {'number', TokenLine, {floatexp, TokenChars}}}.
 
-% binaries
-"0x{HEX}*" :
+% verbose timestring, similar to RFC 3339
+"{YEAR}-{MONTH}-{DAY}T{HOUR}:{MIN}:{SEC}{FRAC}?{TZ}?" :
+  {token, {'string', TokenLine, {time, trim(TokenChars)}}}.
+
+% compact timestring, similar to RFC 3339
+"{YEAR}{MONTH}{DAY}T{HOUR}{MIN}{SEC}{FRAC}?{TZ}?" :
+  {token, {'string', TokenLine, {time, trim(TokenChars)}}}.
+
+% hexstring
+"0x{HEX}+" :
   {token, {'string', TokenLine, {hex, trim(TokenChars)}}}.
 
 % string

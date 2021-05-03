@@ -49,7 +49,7 @@ elements -> elements ',' element : array('$1', '$3').
 
 Erlang code.
 
-val({Class, _, Val}) -> mason:dec(val, Class, Val).
-key({Class, _, Val}) -> mason:dec(key, Class, Val).
-array(Array, Element) -> mason:dec(array, Array, Element).
-object(Object, Member) -> mason:dec(object, Object, Member).
+val({Class, _, Val}) -> mason_decoder:go(val, Class, Val).
+key({Class, _, Val}) -> mason_decoder:go(key, Class, Val).
+array(Array, Element) -> mason_decoder:go(array, Array, Element).
+object(Object, Member) -> mason_decoder:go(object, Object, Member).
