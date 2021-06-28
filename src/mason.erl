@@ -5,10 +5,14 @@
     decode/1, decode/2]).
 
 -export(
-   [get_opt/1]).
+   [ts/2,
+    get_opt/1]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% API
+
+ts(TS, Unit) ->
+    mason_encoder:ts(TS, Unit).
 
 encode(X) ->
     encode(X, #{}).

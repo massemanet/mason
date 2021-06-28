@@ -1,10 +1,11 @@
 %% -*- mode: erlang; erlang-indent-level: 4 -*-
 -module(mason_encoder).
 
--export([emit/1]).
+-export([emit/1,
+         ts/2]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% implementation
+%% the erlang types
 
 emit(Bin)   when is_bitstring(Bin) -> emit_binary(Bin);
 emit(Atom)  when is_atom(Atom)     -> emit_atom(Atom);
@@ -16,9 +17,6 @@ emit(Port)  when is_port(Port)     -> emit_port(Port);
 emit(List)  when is_list(List)     -> emit_list(List);
 emit(Tuple) when is_tuple(Tuple)   -> emit_tuple(Tuple);
 emit(Map)   when is_map(Map)       -> emit_map(Map).
-
-emit_binary(Bin) ->
-    emit_binary(Bin, "", "").
 
 %% some abstract patterns
 -define(ip(A, B, C, D), {A, B, C, D}).
@@ -35,6 +33,11 @@ emit_binary(Bin) ->
 -define(is_stack(M, F, A, L), ?is_mfa(M, F, A), is_integer(L)).
 -define(is_proplist(T), tuple_size(T) =:= 2, is_atom(element(1, T))).
 -define(is_printable(C), C==9; C==10; C==13; 32 =< C andalso C=< 126).
+
+%% erlang binary() is encoded either as a text string or as a "0x" string
+
+emit_binary(Bin) ->
+    emit_binary(Bin, "", "").
 
 %% we encode to "0xcafe" and "Str" in parallel. If both work we keep
 %% "Str".
@@ -55,7 +58,8 @@ emit_binary(<<I:8, T/binary>>, Str, Hex) when ?is_printable(I) ->
 emit_binary(<<A:4, T/bitstring>>, _, Hex) ->
     emit_binary(T, undefined, [hex(A)|Hex]).
 
-%% `true', `false', and `null' are json keywords
+%% erlang atom() is encoded as string, except `true', `false', and `undefined',
+%% which are encoded as the json words `true', `false', and ``null',
 emit_atom(true) -> "true";
 emit_atom(false) -> "false";
 emit_atom(undefined) -> "null";
@@ -67,9 +71,43 @@ emit_number(I) when is_integer(I) ->
 emit_number(F) ->
     float_to_list(F).
 
-%% just stringify
+%% erlang pid(), decorate with name
 emit_pid(Pid) ->
-    wrap(pid_to_list(Pid)).
+    wrap(name(Pid)).
+
+name(Pid) ->
+    case pname(Pid) of
+        {M, F, A} -> io_lib:format("~w:~w/~w(~w)", [M, F, A, Pid]);
+        X -> io_lib:format("~w(~w)", [X, Pid])
+    end.
+
+pname(Pid) ->
+    case process_info(Pid, registered_name) of
+        {registered_name, Reg} -> Reg;
+        undefined -> dead;
+        [] -> initial_call(Pid)
+    end.
+
+initial_call(Pid) ->
+    case process_info(Pid, initial_call) of
+        {_, {proc_lib, init_p, 5}} -> proc_lib:translate_initial_call(Pid);
+        {_, {erlang, apply, 2}} -> callstack(Pid);
+        {_, MFA}  -> MFA;
+        undefined -> dead
+    end.
+
+callstack(Pid) ->
+    try process_info(Pid, current_stacktrace) of
+        undefined -> dead;
+        {_, []} -> {erlang,apply,2};
+        {_, MFAs} ->
+            case lists:reverse(MFAs) of
+                [{M, F, A, _}|_] -> {M, F, A};
+                [{M, F, A}|_] -> {M, F, A};
+                _ -> {erlang, apply, 2}
+            end
+    catch error:badarg -> {erlang, apply, 2}
+    end.
 
 %% just stringify
 emit_ref(Ref) ->
@@ -158,48 +196,40 @@ inet_info(Port, port) ->
 wrap(X) ->
     [$", X, $"].
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% timestamp
 
-%% maybe_ts(TS, Conf) ->
-%%     case Conf of
-%%         #{ts := none} -> "";
-%%         _ -> ["\"ts\": \"", ts(TS), "\", "]
-%%     end.
+ts({MS, S, US}, now) -> ts(MS*1000_000+S+(US/1000_000), sec);
+ts(TS, nsec) ->  ts(TS/1000_000_000, sec);
+ts(TS, usec) ->  ts(TS/1000_000, sec);
+ts(TS, msec) ->  ts(TS/1000, sec);
+ts(TS, sec) ->
+    Sec = trunc(TS),
+    {{Yr, Mo, Dy}, {H, M, S}} = unix_secs_to_datetime(Sec),
+    ts(Yr, Mo, Dy, H, M, S+TS-Sec);
+ts({{Yr, Mo, Dy}, {H, M, S}}, datetime) ->
+    ts(Yr, Mo, Dy, H, M, S).
 
-%% ts(TS) ->
-%%     Sec = TS div 1000_000,
-%%     Usec = TS rem 1000_000,
-%%     {{Yr, Mo, Dy}, {H, M, S}} = unix_secs_to_datetime(Sec),
-%%     [pad(4, Yr), "-", pad(2, Mo), "-", pad(2, Dy), $T,
-%%      pad(2, H), ":", pad(2, M), ":", pad(2, S), $., integer_to_list(Usec)].
-%% unix_secs_to_datetime(Sec) ->
-%%     GregorianSecs1970 = 62167219200,
-%%     calendar:gregorian_seconds_to_datetime(Sec+GregorianSecs1970).
+ts(Yr, Mo, Dy, H, M, Sec) ->
+    S = trunc(Sec),
+    [pad(4, Yr), "-", pad(2, Mo), "-", pad(2, Dy),
+     $T,
+     pad(2, H), ":", pad(2, M), ":", pad(2, S),
+     frac(Sec-S),
+     "Z"].
 
-%% pad(_, N) when N < 0 -> error({negative_time, N});
-%% pad(L, N) when is_integer(N) -> pad(L, integer_to_list(N));
-%% pad(4, [_, _, _, _] = S) -> S;
-%% pad(4, [_, _, _] = S) -> [$0, S];
-%% pad(4, [_, _] = S) -> [$0, $0, S];
-%% pad(4, [_] = S) -> [$0, $0, $0, S];
-%% pad(2, [_, _] = S) -> S;
-%% pad(2, [_] = S) -> [$0, S].
+frac(F) when F < 0.5e-9 -> [];
+frac(F) -> tl(float_to_list(F, [{decimals, 9}, compact])).
 
-%% name(Pid) ->
-%%     case pname(Pid) of
-%%         {M, F, A} -> io_lib:format("~w:~w/~w(~w)", [M, F, A, Pid]);
-%%         X -> io_lib:format("~w(~w)", [X, Pid])
-%%     end.
+unix_secs_to_datetime(Sec) ->
+    GregorianSecs1970 = 62167219200,
+    calendar:gregorian_seconds_to_datetime(Sec+GregorianSecs1970).
 
-%% pname(Pid) ->
-%%     case process_info(Pid, registered_name) of
-%%         {registered_name, Reg} -> Reg;
-%%         undefined -> dead;
-%%         [] -> initial_call(Pid)
-%%     end.
-
-%% initial_call(Pid) ->
-%%     case process_info(Pid, initial_call) of
-%%         {_, {proc_lib, init_p, 5}} -> proc_lib:translate_initial_call(Pid);
-%%         {_, MFA}  -> MFA;
-%%         undefined -> dead
-%%    end.
+pad(_, N) when N < 0 -> error({negative_time, N});
+pad(L, N) when is_integer(N) -> pad(L, integer_to_list(N));
+pad(4, [_, _, _, _] = S) -> S;
+pad(4, [_, _, _] = S) -> [$0, S];
+pad(4, [_, _] = S) -> [$0, $0, S];
+pad(4, [_] = S) -> [$0, $0, $0, S];
+pad(2, [_, _] = S) -> S;
+pad(2, [_] = S) -> [$0, S].
