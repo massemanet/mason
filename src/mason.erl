@@ -6,7 +6,7 @@
 
 -export(
    [ts/2,
-    get_opt/1]).
+    get_opt/2]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% API
@@ -52,5 +52,8 @@ store_opts(Opts) ->
 delete_opts(Opts) ->
     maps:map(fun(K, _) -> erase({mason, K}) end, Opts).
 
-get_opt(K) ->
-    get({mason, K}).
+get_opt(K, Default) ->
+    case get({mason, K}) of
+        undefined -> Default;
+        Val -> Val
+    end.
