@@ -18,11 +18,11 @@ go(val, word, true) -> true;
 go(val, word, false) -> false;
 go(val, word, null) -> dec_null();
 go(key, Class, {Type, Str}) -> dec_key(Class, Type, Str);
-go(array, undefined, undefined) -> [];
-go(array, undefined, Val) -> [Val];
+go(array, [], []) -> [];
+go(array, [], Val) -> [Val];
 go(array, Vals, Val) -> lists:reverse([Val|lists:reverse(Vals)]);
-go(object, undefined, undefined) -> #{};
-go(object, undefined, Member) -> Member;
+go(object, [], []) -> #{};
+go(object, [], Member) -> Member;
 go(object, Members, Member) -> maps:merge(Members, Member).
 
 dec_key(Class, Type, Str) ->

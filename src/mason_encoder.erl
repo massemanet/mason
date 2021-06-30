@@ -68,7 +68,7 @@ emit_atom(A) -> wrap(atom_to_list(A)).
 emit_undefined() ->
     case mason:get_opt(undefined, undefined) of
         null -> "null";
-        undefined -> "undefined"
+        undefined -> wrap("undefined")
     end.
 
 %% numbers should be fine and not quoted

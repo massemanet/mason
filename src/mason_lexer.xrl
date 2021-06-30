@@ -33,7 +33,7 @@ FRAC = (\.[0-9]+)
 TZ = (Z|[+-]{HOUR}:{MIN})
 
 % reserved words
-WORDS = true|false|null
+WORD = true|false|null
 
 Rules.
 
@@ -67,7 +67,7 @@ Rules.
   {token, {'string', TokenLine, {chars, trim(TokenChars)}}}.
 
 % words
-{WORDS} :
+{WORD} :
   {token, {list_to_atom(TokenChars), TokenLine}}.
 
 % separators

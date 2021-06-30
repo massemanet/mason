@@ -26,11 +26,11 @@ value -> true     : val('$1').
 value -> false    : val('$1').
 value -> null     : val('$1').
 
-object -> '{' '}'         : object(undefined, undefined).
-object -> '{' ws '}'      : object(undefined, undefined).
+object -> '{' '}'         : object([], []).
+object -> '{' ws '}'      : object([], []).
 object -> '{' members '}' : '$2'.
 
-members -> member             : object(undefined, '$1').
+members -> member             : object([], '$1').
 members -> members ',' member : object('$1', '$3').
 
 member -> key ':' element : #{'$1' => '$3'}.
@@ -40,11 +40,11 @@ key -> string ws    : key('$1').
 key -> ws string    : key('$2').
 key -> ws string ws : key('$2').
 
-array -> '[' ']'          : array(undefined, undefined).
-array -> '[' ws ']'       : array(undefined, undefined).
+array -> '[' ']'          : array([], []).
+array -> '[' ws ']'       : array([], []).
 array -> '[' elements ']' : '$2'.
 
-elements -> element              : array(undefined, '$1').
+elements -> element              : array([], '$1').
 elements -> elements ',' element : array('$1', '$3').
 
 Erlang code.
