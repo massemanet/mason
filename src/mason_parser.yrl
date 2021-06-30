@@ -22,9 +22,9 @@ value -> object   : '$1'.
 value -> array    : '$1'.
 value -> number   : val('$1').
 value -> string   : val('$1').
-value -> true     : true.
-value -> false    : false.
-value -> null     : undefined.
+value -> true     : val('$1').
+value -> false    : val('$1').
+value -> null     : val('$1').
 
 object -> '{' '}'         : object(undefined, undefined).
 object -> '{' ws '}'      : object(undefined, undefined).
@@ -49,6 +49,7 @@ elements -> elements ',' element : array('$1', '$3').
 
 Erlang code.
 
+val({Val, _}) -> mason_decoder:go(val, word, Val);
 val({Class, _, Val}) -> mason_decoder:go(val, Class, Val).
 key({Class, _, Val}) -> mason_decoder:go(key, Class, Val).
 array(Array, Element) -> mason_decoder:go(array, Array, Element).

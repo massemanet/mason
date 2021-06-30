@@ -20,6 +20,7 @@ CHAR = [^"\\]
 ESC = \\[bfnrt"/\\]
 HEXESC = \\u{HEX}{HEX}{HEX}{HEX}
 CHARS = ({CHAR}|{ESC}|{HEXESC})*
+TAILBITS = (:[1-3])
 
 % time
 YEAR = [0-9][0-9][0-9][0-9]
@@ -58,7 +59,7 @@ Rules.
   {token, {'string', TokenLine, {time, trim(TokenChars)}}}.
 
 % hexstring
-"0x{HEX}+" :
+"0x{HEX}+{TAILBITS}?" :
   {token, {'string', TokenLine, {hex, trim(TokenChars)}}}.
 
 % string

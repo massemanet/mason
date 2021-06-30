@@ -46,11 +46,11 @@ emit_binary(<<>>, undefined, Hex) ->
 emit_binary(<<>>, Str, _) ->
     wrap(lists:reverse(Str));
 emit_binary(<<A:1>>, _, Hex) ->
-    emit_binary(<<>>, undefined, [hex(A)|Hex]);
+    emit_binary(<<>>, undefined, [$1, $:, hex(A)|Hex]);
 emit_binary(<<A:2>>, _, Hex) ->
-    emit_binary(<<>>, undefined, [hex(A)|Hex]);
+    emit_binary(<<>>, undefined, [$2, $:, hex(A)|Hex]);
 emit_binary(<<A:3>>, _, Hex) ->
-    emit_binary(<<>>, undefined, [hex(A)|Hex]);
+    emit_binary(<<>>, undefined, [$3, $:, hex(A)|Hex]);
 emit_binary(<<A:4, T/bitstring>>, undefined, Hex) ->
     emit_binary(T, undefined, [hex(A)|Hex]);
 emit_binary(<<I:8, T/binary>>, Str, Hex) when ?is_printable(I) ->
@@ -62,8 +62,14 @@ emit_binary(<<A:4, T/bitstring>>, _, Hex) ->
 %% which are encoded as the json words `true', `false', and ``null',
 emit_atom(true) -> "true";
 emit_atom(false) -> "false";
-emit_atom(undefined) -> "null";
+emit_atom(undefined) -> emit_undefined();
 emit_atom(A) -> wrap(atom_to_list(A)).
+
+emit_undefined() ->
+    case mason:get_opt(undefined, undefined) of
+        null -> "null";
+        undefined -> "undefined"
+    end.
 
 %% numbers should be fine and not quoted
 emit_number(I) when is_integer(I) ->

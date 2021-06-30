@@ -12,8 +12,11 @@ go(val, number, {float, Str}) -> list_to_float(Str);
 go(val, number, {intexp, Str}) -> intexp_to_float(Str);
 go(val, number, {floatexp, Str}) -> list_to_float(Str);
 go(val, string, {hex, Str}) -> hex_to_binary(Str);
-go(val, string, {chars, Str}) -> char_string(Str);
+go(val, string, {chars, Str}) -> dec_string(Str);
 go(val, string, {time, Str}) -> ts(Str);
+go(val, word, true) -> true;
+go(val, word, false) -> false;
+go(val, word, null) -> dec_null();
 go(key, Class, {Type, Str}) -> dec_key(Class, Type, Str);
 go(array, undefined, undefined) -> [];
 go(array, undefined, Val) -> [Val];
@@ -30,11 +33,17 @@ dec_key(Class, Type, Str) ->
         term -> go(val, Class, {Type, Str})
     end.
 
-char_string(Str) ->
+dec_string(Str) ->
     case mason:get_opt(string, string) of
         string -> Str;
         binary -> list_to_binary(Str);
         atom -> list_to_atom(Str)
+    end.
+
+dec_null() ->
+    case mason:get_opt(null, undefined) of
+        undefined -> undefined;
+        null -> null
     end.
 
 %% kind of rfc 3339. we allow compact and verbose datetime, and frac.
@@ -56,25 +65,29 @@ digits([H|T]) when $0 =< H, H =< $9 ->
 digits(_) ->
     [].
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% decoding json -> erlang
+%% integer with exponent; e.g. "1e3"
 
 intexp_to_float(S) ->
     [A,B] = re:split(S, "[Ee]", [{return, list}]),
     list_to_float(lists:append([A,".0e", B])).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% hexstring, e.g. "0xa3:2"
+
 hex_to_binary("0x"++R) ->
-    hex_to_binary(R, <<>>).
+    hex_to_binary(R, 4, <<>>).
 
 -define(upcase(C), $A =< C, C =< $F).
 -define(lowcase(C), $a =< C, C =< $f).
 -define(digit(C), $0 =< C, C =< $9).
-hex_to_binary("", O) ->
+hex_to_binary("", _, O) ->
     O;
-hex_to_binary([C|R], O) when ?upcase(C) ->
-    hex_to_binary(R, <<O/bitstring, (C-$A+10):4>>);
-hex_to_binary([C|R], O) when ?lowcase(C) ->
-    hex_to_binary(R, <<O/bitstring, (C-$a+10):4>>);
-hex_to_binary([C|R], O) when ?digit(C) ->
-    hex_to_binary(R, <<O/bitstring, (C-$0):4>>).
+hex_to_binary([C, $:, N], _, O) when $0 < N, N < $4 ->
+    hex_to_binary([C], N-$0, O);
+hex_to_binary([C|R], N, O) when ?upcase(C) ->
+    hex_to_binary(R, N, <<O/bitstring, (C-$A+10):N>>);
+hex_to_binary([C|R], N, O) when ?lowcase(C) ->
+    hex_to_binary(R, N, <<O/bitstring, (C-$a+10):N>>);
+hex_to_binary([C|R], N, O) when ?digit(C) ->
+    hex_to_binary(R, N, <<O/bitstring, (C-$0):N>>).
