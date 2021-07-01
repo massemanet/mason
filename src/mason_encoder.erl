@@ -54,7 +54,7 @@ emit_binary(<<A:3>>, _, Hex) ->
 emit_binary(<<A:4, T/bitstring>>, undefined, Hex) ->
     emit_binary(T, undefined, [hex(A)|Hex]);
 emit_binary(<<I:8, T/binary>>, Str, Hex) when ?is_printable(I) ->
-    emit_binary(T, [I|Str], [hex(I rem 16), hex(I div 16)|Hex]);
+    emit_binary(T, escape(I, Str), [hex(I rem 16), hex(I div 16)|Hex]);
 emit_binary(<<A:4, T/bitstring>>, _, Hex) ->
     emit_binary(T, undefined, [hex(A)|Hex]).
 
@@ -63,7 +63,7 @@ emit_binary(<<A:4, T/bitstring>>, _, Hex) ->
 emit_atom(true) -> "true";
 emit_atom(false) -> "false";
 emit_atom(undefined) -> emit_undefined();
-emit_atom(A) -> wrap(atom_to_list(A)).
+emit_atom(A) -> wrap(escape(A)).
 
 emit_undefined() ->
     case mason:get_opt(undefined, undefined) of
@@ -152,7 +152,7 @@ emit_list([], {str, S}, _) ->
 emit_list([{K, V}|T], {obj, O}, R) when ?is_proplist({K, V}) ->
     emit_list(T, {obj, [emit(V), ":", emit(K), ","|O]}, [emit_tuple({K, V}), ","|R]);
 emit_list([I|T], {str, S}, R) when ?is_printable(I) ->
-    emit_list(T, {str, [I|S]}, [emit_number(I), ","|R]);
+    emit_list(T, {str, escape(I, S)}, [emit_number(I), ","|R]);
 emit_list([E|T], _, R) ->
     emit_list(T, undefined, [emit(E), ","|R]).
 
@@ -187,7 +187,7 @@ ip(I1, I2, I3, I4) ->
     string:join([integer_to_list(I) || I <- [I1, I2, I3, I4]], ".").
 
 mfa_(M, F, A) ->
-    [atom_to_list(M), ":", atom_to_list(F), "/", integer_to_list(A)].
+    [escape(M), ":", escape(F), "/", integer_to_list(A)].
 
 fun_info(Fun, Tag) ->
     {Tag, Val} = erlang:fun_info(Fun, Tag),
@@ -201,6 +201,22 @@ inet_info(Port, port) ->
 
 wrap(X) ->
     [$", X, $"].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% string escapes
+
+escape(Atom) when is_atom(Atom) ->
+    lists:reverse(lists:foldl(fun escape/2, "", atom_to_list(Atom))).
+
+escape(I, Str) ->
+    case I of
+        $\\ ->[$\\, $\\|Str];
+        $"  -> [$", $\\|Str];
+        $\n -> [$n, $\\|Str];
+        $\t -> [$t, $\\|Str];
+        $\r -> [$r, $\\|Str];
+        _   -> [I|Str]
+    end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% timestamp
