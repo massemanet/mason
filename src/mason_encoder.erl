@@ -158,15 +158,18 @@ emit_list([E|T], _, R) ->
 
 %% we map tuples to json lists, except IP numbers, {IP, Port}, stack traces, and MFAs.
 emit_tuple(?stack(M, F, A, L)) when ?is_stack(M, F, A, L) ->
-    wrap([mfa_(M, F, A), ":", integer_to_list(L)]);
+    wrap([emit_mfa(M, F, A), ":", integer_to_list(L)]);
 emit_tuple(?ipp(A, B, C, D, Port)) when ?is_ipp(A, B, C, D, Port) ->
     wrap([ip(A, B, C, D), ":", integer_to_list(Port)]);
 emit_tuple(?ip(A, B, C, D)) when ?is_ip(A, B, C, D)->
     wrap(ip(A, B, C, D));
 emit_tuple(?mfa(M, F, A)) when ?is_mfa(M, F, A) ->
-    wrap(mfa_(M, F, A));
+    wrap(emit_mfa(M, F, A));
 emit_tuple(T) ->
     emit_list(tuple_to_list(T)).
+
+emit_mfa(M, F, A) ->
+    [escape(M), ":", escape(F), "/", integer_to_list(A)].
 
 %% we map maps to json objects
 emit_map(Map) when map_size(Map) =:= 0 ->
@@ -185,9 +188,6 @@ hex(I) -> I+$W.
 
 ip(I1, I2, I3, I4) ->
     string:join([integer_to_list(I) || I <- [I1, I2, I3, I4]], ".").
-
-mfa_(M, F, A) ->
-    [escape(M), ":", escape(F), "/", integer_to_list(A)].
 
 fun_info(Fun, Tag) ->
     {Tag, Val} = erlang:fun_info(Fun, Tag),
@@ -234,11 +234,12 @@ ts({{Yr, Mo, Dy}, {H, M, S}}, datetime) ->
 
 ts(Yr, Mo, Dy, H, M, Sec) ->
     S = trunc(Sec),
-    [pad(4, Yr), "-", pad(2, Mo), "-", pad(2, Dy),
-     $T,
-     pad(2, H), ":", pad(2, M), ":", pad(2, S),
-     frac(Sec-S),
-     "Z"].
+    lists:flatten(
+      [pad(4, Yr), "-", pad(2, Mo), "-", pad(2, Dy),
+       "T",
+       pad(2, H), ":", pad(2, M), ":", pad(2, S),
+       frac(Sec-S),
+       "Z"]).
 
 frac(F) when F < 0.5e-9 -> [];
 frac(F) -> tl(float_to_list(F, [{decimals, 9}, compact])).
