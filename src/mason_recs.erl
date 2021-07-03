@@ -4,7 +4,7 @@
 
 %% API
 -export(
-   [start_link/1,
+   [learn/1,
     keys/3]).
 
 %% gen_server callbacks
@@ -14,9 +14,6 @@
     handle_cast/2,
     handle_info/2]).
 
-start_link(A) ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, A, []).
-
 keys(Rec, Arity, Mod) ->
     case ets:match(mason_recs, {{Rec, Arity, Mod}, '$1'}) of
         [] -> [];
@@ -24,9 +21,14 @@ keys(Rec, Arity, Mod) ->
         [[Fieldnames]] -> Fieldnames
     end.
 
+learn(Mod) when is_atom(Mod) ->
+    learn([Mod]);
+learn(Mods) when is_list(Mods) ->
+    populate(Mods).
+
 init(_) ->
     ets:new(mason_recs, [ordered_set, named_table, public]),
-    populate(modules()),
+    learn(modules()),
     {ok, state}.
 
 handle_call(_Request, _From, State) ->

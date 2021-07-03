@@ -1,19 +1,29 @@
 -module(mason).
 
 -export(
+   [start_link/1]).
+
+-export(
    [encode/1, encode/2,
     decode/1, decode/2]).
 
 -export(
    [ts/2,
-    record_keys/2, record_keys/3,
+    record_learn/1, record_keys/2, record_keys/3,
     get_opt/2]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% API
 
+start_link(A) ->
+    gen_server:start_link({local, mason}, mason_recs, A, []).
+
+
 ts(TS, Unit) ->
     mason_encoder:ts(TS, Unit).
+
+record_learn(M) ->
+    mason_recs:learn(M).
 
 record_keys(Name, Arity) ->
     record_keys(Name, Arity, '_').
