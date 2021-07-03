@@ -176,9 +176,15 @@ emit_tuple(?mfa(M, F, A)) when ?is_mfa(M, F, A) ->
 emit_tuple(DateTime) when ?is_datetime(DateTime) ->
     wrap(ts(DateTime, datetime));
 emit_tuple(T) ->
-    case mason:record_keys(element(1, T), tuple_size(T)-1) of
+    case record_keys(T) of
         [] -> emit_list(tuple_to_list(T));
         Keys -> emit_list(lists:zip(['RECORD'|Keys], tuple_to_list(T)))
+    end.
+
+record_keys(T) ->
+    case 1 < (TS = tuple_size(T)) of
+        true -> mason:record_keys(element(1, T), TS);
+        false -> []
     end.
 
 emit_mfa(M, F, A) ->

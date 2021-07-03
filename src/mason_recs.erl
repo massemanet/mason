@@ -15,11 +15,7 @@
     handle_info/2]).
 
 keys(Rec, Arity, Mod) ->
-    case ets:match(mason_recs, {{Rec, Arity, Mod}, '$1'}) of
-        [] -> [];
-        [_, _|_] -> [];
-        [[Fieldnames]] -> Fieldnames
-    end.
+    lookup({Rec, Arity, Mod}).
 
 learn(Mod) when is_atom(Mod) ->
     learn([Mod]);
@@ -27,7 +23,7 @@ learn(Mods) when is_list(Mods) ->
     populate(Mods).
 
 init(_) ->
-    ets:new(mason_recs, [ordered_set, named_table, public]),
+    table(),
     learn(modules()),
     {ok, state}.
 
@@ -91,3 +87,15 @@ field_name(Field) ->
 
 store(T) ->
     ets:insert(mason_recs, T).
+
+lookup(Key) ->
+    try ets:match(mason_recs, {Key, '$1'}) of
+        [] -> [];
+        [_, _|_] -> [];
+        [[Val]] -> Val
+    catch
+        _:_ -> []
+    end.
+
+table() ->
+    ets:new(mason_recs, [ordered_set, named_table, public]).
