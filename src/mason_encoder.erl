@@ -178,7 +178,7 @@ emit_tuple(DateTime) when ?is_datetime(DateTime) ->
 emit_tuple(T) ->
     case mason:record_keys(element(1, T), tuple_size(T)-1) of
         [] -> emit_list(tuple_to_list(T));
-        Keys -> emit_list(lists:zip(Keys, tl(tuple_to_list(T))))
+        Keys -> emit_list(lists:zip(['RECORD'|Keys], tuple_to_list(T)))
     end.
 
 emit_mfa(M, F, A) ->
