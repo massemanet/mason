@@ -2,6 +2,7 @@
  mason,
  [{description, "Yet another json encoder"},
   {vsn, "0.5.0"},
+  {mod, {mason_app, []}},
   {applications, [kernel, stdlib]},
   {licenses, ["MIT"]},
   {links, [{"Github", "https://github.com/massemanet/mason"}]}]}.

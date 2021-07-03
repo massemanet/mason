@@ -6,6 +6,7 @@
 
 -export(
    [ts/2,
+    record_keys/2, record_keys/3,
     get_opt/2]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -13,6 +14,12 @@
 
 ts(TS, Unit) ->
     mason_encoder:ts(TS, Unit).
+
+record_keys(Name, Arity) ->
+    record_keys(Name, Arity, '_').
+
+record_keys(Name, Arity, Mod) ->
+    mason_recs:keys(Name, Arity, Mod).
 
 encode(X) ->
     encode(X, #{}).

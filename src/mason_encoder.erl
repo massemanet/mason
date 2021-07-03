@@ -25,14 +25,22 @@ emit(Map)   when is_map(Map)       -> emit_map(Map).
 -define(stack(M, F, A, L), {M, F, A, [_, {line, L}]}).
 
 %% some user-defined guards
+-define(nneg(I), is_integer(I), 0 =< I).
+-define(e(N, T), element(N, T)).
+-define(ee(N, M, T), element(N, element(M, T))).
+-define(ts(S, T), tuple_size(T) =:= S).
 -define(is_byte(B), 0 =< B, B =< 255).
 -define(is_long(L), 0 =< L, L =< 65535).
 -define(is_ipp(A, B, C, D, P), ?is_ip(A, B, C, D), ?is_long(P)).
 -define(is_ip(A, B, C, D), ?is_byte(A), ?is_byte(B), ?is_byte(C), ?is_byte(D)).
--define(is_mfa(M, F, A), is_atom(M), is_atom(F), is_integer(A)).
--define(is_stack(M, F, A, L), ?is_mfa(M, F, A), is_integer(L)).
+-define(is_mfa(M, F, A), is_atom(M), is_atom(F), ?nneg(A)).
+-define(is_stack(M, F, A, L), ?is_mfa(M, F, A), ?nneg(L)).
 -define(is_proplist(T), tuple_size(T) =:= 2, is_atom(element(1, T))).
 -define(is_printable(C), C==9; C==10; C==13; 32 =< C andalso C=< 126).
+-define(is_datetime(T),
+        ?ts(2, T), ?ts(3, ?e(1, T)), ?ts(3, ?e(2, T)),
+        ?nneg(?ee(1, 1, T)), ?nneg(?ee(2, 1, T)), ?nneg(?ee(3, 1, T)),
+        ?nneg(?ee(1, 2, T)), ?nneg(?ee(2, 2, T)), ?nneg(?ee(3, 2, T))).
 
 %% erlang binary() is encoded either as a text string or as a "0x" string
 
@@ -165,8 +173,13 @@ emit_tuple(?ip(A, B, C, D)) when ?is_ip(A, B, C, D)->
     wrap(ip(A, B, C, D));
 emit_tuple(?mfa(M, F, A)) when ?is_mfa(M, F, A) ->
     wrap(emit_mfa(M, F, A));
+emit_tuple(DateTime) when ?is_datetime(DateTime) ->
+    wrap(ts(DateTime, datetime));
 emit_tuple(T) ->
-    emit_list(tuple_to_list(T)).
+    case mason:record_keys(element(1, T), tuple_size(T)-1) of
+        [] -> emit_list(tuple_to_list(T));
+        Keys -> emit_list(lists:zip(Keys, tl(tuple_to_list(T))))
+    end.
 
 emit_mfa(M, F, A) ->
     [escape(M), ":", escape(F), "/", integer_to_list(A)].
