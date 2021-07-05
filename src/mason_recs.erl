@@ -14,6 +14,7 @@
     handle_cast/2,
     handle_info/2]).
 
+%% `Arity' is the record arity, 1 less than the tuple arity
 keys(Rec, Arity, Mod) ->
     lookup({Rec, Arity, Mod}).
 

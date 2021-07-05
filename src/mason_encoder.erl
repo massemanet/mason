@@ -183,7 +183,7 @@ emit_tuple(T) ->
 
 record_keys(T) ->
     case 1 < (TS = tuple_size(T)) of
-        true -> mason:record_keys(element(1, T), TS);
+        true -> mason:record_keys(element(1, T), TS-1);
         false -> []
     end.
 
