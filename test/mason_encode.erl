@@ -84,6 +84,22 @@ t_24_test() ->
     assert_eq('[["a","b"],[1,"d"]]',
               [{a, b}, {1, d}]).
 
+t_25_test() ->
+    assert_eq('{"a":["a","b"]}',
+              [a | {a, b}]).
+
+t_26_test() ->
+    assert_eq('[49,["a","b"]]',
+              [49 | {a, b}]).
+
+t_27_test() ->
+    assert_eq('["a",49,[1,"d"]]',
+              [a , 49 | {1, d}]).
+
+t_28_test() ->
+    assert_eq('[49,"a",["a","d"]]',
+              [49, a | {a, d}]).
+
 assert_eq(Goal, In) ->
     ?assertEqual(atom_to_list(Goal), mason:encode(In)).
 

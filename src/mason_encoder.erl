@@ -35,7 +35,7 @@ emit(Map)   when is_map(Map)       -> emit_map(Map).
 -define(is_ip(A, B, C, D), ?is_byte(A), ?is_byte(B), ?is_byte(C), ?is_byte(D)).
 -define(is_mfa(M, F, A), is_atom(M), is_atom(F), ?nneg(A)).
 -define(is_stack(M, F, A, L), ?is_mfa(M, F, A), ?nneg(L)).
--define(is_proplist(T), tuple_size(T) =:= 2, is_atom(element(1, T))).
+-define(is_pl_element(T), tuple_size(T) =:= 2, is_atom(element(1, T))).
 -define(is_printable(C), C==9; C==10; C==13; 32 =< C andalso C=< 126).
 -define(is_datetime(T),
         ?ts(2, T), ?ts(3, ?e(1, T)), ?ts(3, ?e(2, T)),
@@ -146,7 +146,9 @@ emit_port(Port) ->
 emit_list(List) ->
     case List of
         [] -> "[]";
-        [PL|_] when ?is_proplist(PL) -> emit_list(List, {obj, []}, []);
+        [K|V] when not is_list(V), ?is_pl_element({K, V}) -> emit_list([{K, V}]);
+        [K|V] when not is_list(V) -> emit_list([K, V]);
+        [PL|_] when ?is_pl_element(PL) -> emit_list(List, {obj, []}, []);
         [I|_] when ?is_printable(I) -> emit_list(List, {str, ""}, []);
         _ -> emit_list(List, undefined, [])
     end.
@@ -157,12 +159,14 @@ emit_list([], {obj, O}, _) ->
     ["{", tl(lists:reverse(O)), "}"];
 emit_list([], {str, S}, _) ->
     wrap(lists:reverse(S));
-emit_list([{K, V}|T], {obj, O}, R) when ?is_proplist({K, V}) ->
+emit_list([{K, V}|T], {obj, O}, R) when ?is_pl_element({K, V}) ->
     emit_list(T, {obj, [emit(V), ":", emit(K), ","|O]}, [emit_tuple({K, V}), ","|R]);
 emit_list([I|T], {str, S}, R) when ?is_printable(I) ->
     emit_list(T, {str, escape(I, S)}, [emit_number(I), ","|R]);
-emit_list([E|T], _, R) ->
-    emit_list(T, undefined, [emit(E), ","|R]).
+emit_list([E|T], _, R) when is_list(T) ->
+    emit_list(T, undefined, [emit(E), ","|R]);
+emit_list([E|T], _, R) when not is_list(T) ->
+    emit_list([], undefined, [emit(T), ",", emit(E), ","|R]).
 
 %% we map tuples to json lists, except IP numbers, {IP, Port}, stack traces, and MFAs.
 emit_tuple(?stack(M, F, A, L)) when ?is_stack(M, F, A, L) ->
