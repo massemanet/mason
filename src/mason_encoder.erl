@@ -1,8 +1,9 @@
 %% -*- mode: erlang; erlang-indent-level: 4 -*-
 -module(mason_encoder).
 
--export([emit/1,
-         ts/2]).
+-export(
+   [emit/1,
+    ts/2]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% the erlang types
@@ -24,23 +25,25 @@ emit(Map)   when is_map(Map)       -> emit_map(Map).
 -define(mfa(M, F, A), {M, F, A}).
 -define(stack(M, F, A, L), {M, F, A, [_, {line, L}]}).
 
-%% some user-defined guards
--define(nneg(I), is_integer(I), 0 =< I).
+%% some lifters
 -define(e(N, T), element(N, T)).
 -define(ee(N, M, T), element(N, element(M, T))).
--define(ts(S, T), tuple_size(T) =:= S).
+
+%% some user-defined guards
+-define(is_tsize(S, T), tuple_size(T) =:= S).
+-define(is_nneg(I), is_integer(I), 0 =< I).
 -define(is_byte(B), 0 =< B, B =< 255).
 -define(is_long(L), 0 =< L, L =< 65535).
 -define(is_ipp(A, B, C, D, P), ?is_ip(A, B, C, D), ?is_long(P)).
 -define(is_ip(A, B, C, D), ?is_byte(A), ?is_byte(B), ?is_byte(C), ?is_byte(D)).
--define(is_mfa(M, F, A), is_atom(M), is_atom(F), ?nneg(A)).
--define(is_stack(M, F, A, L), ?is_mfa(M, F, A), ?nneg(L)).
+-define(is_mfa(M, F, A), is_atom(M), is_atom(F), ?is_nneg(A)).
+-define(is_stack(M, F, A, L), ?is_mfa(M, F, A), ?is_nneg(L)).
 -define(is_pl_element(T), tuple_size(T) =:= 2, is_atom(element(1, T))).
 -define(is_printable(C), C==9; C==10; C==13; 32 =< C andalso C=< 126).
 -define(is_datetime(T),
-        ?ts(2, T), ?ts(3, ?e(1, T)), ?ts(3, ?e(2, T)),
-        ?nneg(?ee(1, 1, T)), ?nneg(?ee(2, 1, T)), ?nneg(?ee(3, 1, T)),
-        ?nneg(?ee(1, 2, T)), ?nneg(?ee(2, 2, T)), ?nneg(?ee(3, 2, T))).
+        ?is_tsize(2, T), ?is_tsize(3, ?e(1, T)), ?is_tsize(3, ?e(2, T)),
+        ?is_nneg(?ee(1, 1, T)), ?is_nneg(?ee(2, 1, T)), ?is_nneg(?ee(3, 1, T)),
+        ?is_nneg(?ee(1, 2, T)), ?is_nneg(?ee(2, 2, T)), ?is_nneg(?ee(3, 2, T))).
 
 %% erlang binary() is encoded either as a text string or as a "0x" string
 
@@ -142,7 +145,7 @@ emit_port(Port) ->
     end.
 
 %% a list is either a string, a proplist, or just a list. we map to
-%% a string, an object, or a list, respectively
+%% a string, an object, or an array, respectively
 emit_list(List) ->
     case List of
         [] -> "[]";

@@ -18,7 +18,6 @@
 start_link(A) ->
     gen_server:start_link({local, mason}, mason_recs, A, []).
 
-
 ts(TS, Unit) ->
     mason_encoder:ts(TS, Unit).
 
@@ -60,7 +59,7 @@ lift({error, {Line, mason_lexer, Err}, _}) -> throw({error, {lexer, Line, Err}})
 lift({error, {Line, mason_parser, Err}}) -> throw({error, {syntax, Line, lists:flatten(Err)}}).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% options. since the parser/lexer don't allow us to pass options, use
+%% options. since the parser/lexer don't allow us to pass options, we
 %% resort to using the process dictionary
 
 store_opts(Opts) ->

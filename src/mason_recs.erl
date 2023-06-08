@@ -86,6 +86,8 @@ field_name(Field) ->
         {typed_record_field, F, _} -> field_name(F)
     end.
 
+%% storage (in ets)
+
 store(T) ->
     ets:insert(mason_recs, T).
 
