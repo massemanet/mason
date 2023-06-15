@@ -1,4 +1,3 @@
-%% -*- mode: erlang; erlang-indent-level: 4 -*-
 -module(mason_decode).
 
 -include_lib("eunit/include/eunit.hrl").
