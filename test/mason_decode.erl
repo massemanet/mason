@@ -71,6 +71,9 @@ t_23_test() ->
 t_24_test() ->
     assert_eq("2000-01-01T01:01:07",
               '"20000101T010107Z"').
+t_25_test() ->
+    assert_eq([10],
+              '"\n"').
 
-assert_eq(Goal, In) ->
-    ?assertEqual(Goal, mason:decode(atom_to_list(In))).
+assert_eq(Expected, Subject) ->
+    ?assertEqual(Expected, mason:decode(atom_to_list(Subject))).

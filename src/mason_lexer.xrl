@@ -64,7 +64,7 @@ Rules.
 
 % string
 "{CHARS}" :
-  {token, {'string', TokenLine, {chars, trim(TokenChars)}}}.
+  {token, {'string', TokenLine, {chars, unescape(TokenChars)}}}.
 
 % words
 {WORD} :
@@ -83,3 +83,18 @@ Erlang code.
 
 trim(Str) ->
     lists:reverse(tl(lists:reverse(tl(Str)))).
+
+unescape([$"|R]) ->
+    [$"|T] = unescape(R, []),
+    lists:reverse(T).
+
+unescape([$\\, $b|R], O) -> unescape(R, [$\b|O]);
+unescape([$\\, $f|R], O) -> unescape(R, [$\f|O]);
+unescape([$\\, $n|R], O) -> unescape(R, [$\n|O]);
+unescape([$\\, $r|R], O) -> unescape(R, [$\r|O]);
+unescape([$\\, $t|R], O) -> unescape(R, [$\t|O]);
+unescape([$\\, $"|R], O) -> unescape(R, [$" |O]);
+unescape([$\\, $/|R], O) -> unescape(R, [$/ |O]);
+unescape([$\\,$\\|R], O) -> unescape(R, [$\\|O]);
+unescape([C|R], O) -> unescape(R, [C|O]);
+unescape([], O) -> O.
