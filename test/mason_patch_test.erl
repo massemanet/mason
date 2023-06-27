@@ -15,4 +15,4 @@ wrap(F, Ts) ->
     [fun() -> F(T) end || T <- Ts].
 
 assert({Patch, Subject, Expected}) ->
-    ?assertEqual(Expected, mason_patch:patch(Patch, Subject)).
+    ?assertEqual(mason:decode(Expected), mason_patch:patch(Patch, Subject)).
