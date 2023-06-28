@@ -12,6 +12,42 @@
     record_learn/1, record_keys/2, record_keys/3,
     get_opt/2]).
 
+%% mason types
+-type options() :: map().
+-type key() :: atom() | string() | binary().
+-type primitive() :: string() | binary() | atom() | number() | true | false | null.
+-type item() :: array() | object() | primitive().
+-type object() :: #{key() => item()} | proplist:proplist().
+-type array() :: [item()] | {item()}.
+-type decoded() :: item().
+-type encoded() :: string() | binary() | atom().
+
+%% Type guards. They should ideally match the types.
+%% Alas, there are two problems;
+%% * the real types are recursive
+%% * guards are pretty limited
+
+%% abstractions
+-define(e1(X), element(1, X)).
+-define(e2(X), element(2, X)).
+-define(is_t2(X), (tuple_size(X) =:= 2)).
+-define(is_t2_(X, E1, E2), (?is_t2(X) andalso (E1) andalso (E2))).
+-define(is_list_(X, E), (is_list(X) andalso ((length(X) =:= 0) orelse (E)))).
+
+%% helpers
+-define(is_jsony(X), (is_number(X) orelse (is_boolean(X)) orelse (X =:= null))).
+-define(is_string(X), (?is_list_(X, ($\s =< hd(X)) andalso (hd(X) =< $~)))).
+-define(is_text(X), (?is_string(X) orelse (is_binary(X))) orelse (is_atom(X))).
+
+-define(is_primitive(X), (?is_text(X) orelse ?is_jsony(X))).
+-define(is_item(X), (is_list(X) orelse (is_tuple(X)) orelse (is_map(X)) orelse ?is_primitive(X))).
+-define(is_prop(X), (?is_t2_(X, ?is_text(?e1(X)), ?is_item(?e2(X))))).
+-define(is_proplist(X), (?is_list_(X, ?is_prop(hd(X))))).
+-define(is_object(X), (is_map(X) orelse ?is_proplist(X))).
+-define(is_array(X), (is_tuple(X) orelse ?is_list_(X, ?is_item(hd(X))))).
+-define(is_decoded(X), (?is_array(X) orelse ?is_object(X) orelse ?is_primitive(X))).
+-define(is_encoded(X), (?is_string(X) orelse is_binary(X) orelse is_atom(X))).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% API
 
@@ -33,7 +69,8 @@ record_keys(Name, Arity, Mod) ->
 encode(X) ->
     encode(X, #{}).
 
-encode(X, Opts) ->
+-spec encode(term(), options()) -> encoded().
+encode(X, Opts) when is_map(Opts) ->
     store_opts(Opts),
     try lists:flatten(mason_encoder:emit(X))
     after delete_opts(Opts)
@@ -42,7 +79,8 @@ encode(X, Opts) ->
 decode(JSON) ->
     decode(JSON, #{}).
 
-decode(JSON, Opts) ->
+-spec decode(encoded(), options()) -> decoded().
+decode(JSON, Opts) when ?is_encoded(JSON), is_map(Opts) ->
     store_opts(Opts),
     try lift(mason_parser:parse(lift(mason_lexer:string(to_str(JSON)))))
     catch throw:Err -> Err

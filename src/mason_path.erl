@@ -60,7 +60,7 @@ select([PXi], M) when ?is_key(PXi), ?is_assoc(M) ->
 select([PXi|PX], M) when ?is_key(PXi), ?is_assoc(M) ->
     select(PX, maps:get(PXi, M));
 select([PXi|_], M) when ?is_selector(PXi), ?is_assoc(M) ->
-    error({select_error, {selector_on_map, PXi, hd(M)}});
+    error({select_error, {selector_on_map, PXi, M}});
 
 %% M is a list
 select([PXi], M) when ?is_selector(PXi), is_list(M) ->
