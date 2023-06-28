@@ -67,6 +67,8 @@ select([PXi], M) when ?is_selector(PXi), is_list(M) ->
     [X || X <- M, assert(PXi, X)];
 select([PXi|PX], M) when ?is_selector(PXi), is_list(M) ->
     [select(PX, X) || X <- M, assert(PXi, X)];
+select([PXi], M) when ?is_key(PXi), is_list(M) ->
+    [V || #{PXi := V} <- M];
 select([PXi|_], M) when ?is_key(PXi), is_list(M) ->
     error({select_error, {key_on_list, PXi, hd(M)}});
 
