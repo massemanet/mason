@@ -262,7 +262,7 @@ eq(Eterm, Cterm) ->
     coerce(Eterm) =:= Cterm.
 
 member(V, L) ->
-    lists:member(unclint(V), L).
+    lists:member(unmason(V), L).
 
 all_is(F, P) when is_function(F, 1), ?IS_PROPS(P) ->
     lists:all(F, P);
