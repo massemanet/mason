@@ -3,7 +3,7 @@
 %% API
 -export [file/1, mason/1, unmason/1, json/1].
 %% generic functions
--export [fold/3, walk/2, sizeof/1, type/1, merge/2, umerge/2, eq/2, singlet/1].
+-export [fold/3, walk/2, sizeof/1, type/1, merge/2, umerge/2, eq/2, member/2, singlet/1].
 %% str
 -export [str/1].
 %% pair
@@ -261,17 +261,26 @@ merge(A1, A2) when ?IS_ARRAY(A1), ?IS_ARRAY(A2) ->
 eq(Eterm, Cterm) ->
     coerce(Eterm) =:= Cterm.
 
+member(V, L) ->
+    lists:member(unclint(V), L).
+
+all_is(F, P) when is_function(F, 1), ?IS_PROPS(P) ->
+    lists:all(F, P);
+all_is(F, A) when is_function(F, 1), ?IS_ARRAY(A) ->
+    lists:all(F, to_list(A)).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% fold helper
+%% we allow array(), props, and regular list().
 
-fold(F, array, Array) when ?IS_ARRAY(Array) ->
-    array(lists:foldl(F, {}, to_list(Array)));
-fold(F, array, Props) when ?IS_PROPS(Props) ->
-    array(lists:foldl(F, {}, Props));
-fold(F, props, Array) when ?IS_ARRAY(Array) ->
-    props(lists:foldl(F, [], to_list(Array)));
-fold(F, props, Props) when ?IS_PROPS(Props) ->
-    props(lists:foldl(F, [], Props)).
+fold(F, array, X) ->
+    array(fold(F, {}, X));
+fold(F, props, X) ->
+    props(lists:foldl(F, [], X));
+fold(F, A, Array) when ?IS_ARRAY(Array) ->
+    fold(F, A, to_list(Array));
+fold(F, A, List) when is_list(List) ->
+    lists:foldl(F, A, List).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% predicates
@@ -309,14 +318,11 @@ tail(A) when ?IS_ARRAY(A) ->
     [_|T] = to_list(A),
     to_tuple(T).
 
-nth(N, A) when ?IS_ARRAY(A), is_integer(N)  ->
+nth(N, A) when is_integer(N), ?IS_ARRAY(A) ->
     case N =< tuple_size(A) of
         true -> element(N, A);
         false -> error({array_too_short, N, A})
     end.
-
-all_is(F, A) when erlang:is_function(F, 1), ?IS_ARRAY(A) ->
-    lists:all(F, to_list(A)).
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% props() methods
