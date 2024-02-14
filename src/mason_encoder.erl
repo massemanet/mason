@@ -236,11 +236,11 @@ escape(Atom) when is_atom(Atom) ->
 
 escape(I, Str) ->
     case I of
-        $\\ ->[$\\, $\\|Str];
-        $"  -> [$", $\\|Str];
-        $\n -> [$n, $\\|Str];
-        $\t -> [$t, $\\|Str];
-        $\r -> [$r, $\\|Str];
+        $\\ -> [$\\, $\\|Str];
+        $"  -> [$" , $\\|Str];
+        $\n -> [$n , $\\|Str];
+        $\t -> [$t , $\\|Str];
+        $\r -> [$r , $\\|Str];
         _   -> [I|Str]
     end.
 

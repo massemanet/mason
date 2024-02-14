@@ -73,7 +73,7 @@ Array. Optionally, we can map to an Object with trivial keys.
   * A normal list.
     * `list()` -> Array.
 
-With option `#{encoder => #{list => object}}` encode list() as Object,
+With option `#{list => object}` encode list() as Object,
 with the Object key being the position in the list.
     * E.g. `[1, a, "foo"] -> {"1": 1, "2": "a", "3": "foo"}`.
 
@@ -100,7 +100,7 @@ Array. Optionally, we can map to an Object with trivial keys.
   * A normal tuple.
     `tuple()` -> Array.
 
-With option `#{encoder => #{tuple => object}}` encode list() as
+With option `#{tuple => object}` encode tuple() as
 Object, with the Object key being the position in the tuple.
 
   * E.g. `[1, a, "foo"] -> {"1": 1, "2": "a", "3": "foo"}`.
@@ -116,7 +116,7 @@ by convention used as booleans (`true` and `false`) and null
   * `undefined` -> null.
   * `atom()` -> String.
 
-With option `#{encoder => #{atom => string}}` all atoms are encoded as
+With option `#{atom => string}` all atoms are encoded as
 String.
 
 ## number()
@@ -129,7 +129,7 @@ be mapped to a String.
   * `float()` -> Number.
   * `integer()` -> Number.
 
-With option `#{encoder => #{number => string}}` all numbers are encoded as
+With option `#{number => string}` all numbers are encoded as
 String.
 
 ## bitstring()
@@ -199,7 +199,8 @@ A number can map to an integer() or a float(). We prefer integers, so
 e.g. `1E1` will be mapped to the integer `10`.
 
 ```Number -> integer() |
-             float().
+
+float().
 ```
 
 The special words will be mapped to atom().

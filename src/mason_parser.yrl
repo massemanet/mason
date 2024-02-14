@@ -26,25 +26,25 @@ value -> true     : val('$1').
 value -> false    : val('$1').
 value -> null     : val('$1').
 
-object -> '{' '}'         : object([], []).
-object -> '{' ws '}'      : object([], []).
+object -> '{' '}'         : object(nil, nil).
+object -> '{' ws '}'      : object(nil, nil).
 object -> '{' members '}' : '$2'.
 
-members -> member             : object([], '$1').
+members -> member             : object(nil, '$1').
 members -> members ',' member : object('$1', '$3').
 
-member -> key ':' element : #{'$1' => '$3'}.
+member -> key ':' element : {'$1', '$3'}.
 
 key -> string       : key('$1').
 key -> string ws    : key('$1').
 key -> ws string    : key('$2').
 key -> ws string ws : key('$2').
 
-array -> '[' ']'          : array([], []).
-array -> '[' ws ']'       : array([], []).
+array -> '[' ']'          : array(nil, nil).
+array -> '[' ws ']'       : array(nil, nil).
 array -> '[' elements ']' : '$2'.
 
-elements -> element              : array([], '$1').
+elements -> element              : array(nil, '$1').
 elements -> elements ',' element : array('$1', '$3').
 
 Erlang code.

@@ -3,10 +3,11 @@
 
 -export([go/3]).
 
-%% decode json -> erlang. this is called from the parser. we're supposed to turn
-%% values into erlang terms (all values are in string representation), arrays
-%% into lists (or tuples), and objects into maps (or proplists). we use
-%% `mason:get_opt' to get guidance.
+%% decode json -> erlang. this is called from the parser. we're
+%% supposed to turn values into erlang terms (all values are in string
+%% representation), arrays into lists (or tuples), and objects into
+%% maps (or proplists, or duplicate maps). we use `mason:get_opt' to
+%% get guidance.
 go(val, number, {int, Str}) -> list_to_integer(Str);
 go(val, number, {float, Str}) -> list_to_float(Str);
 go(val, number, {intexp, Str}) -> intexp_to_float(Str);
@@ -18,12 +19,8 @@ go(val, word, true) -> true;
 go(val, word, false) -> false;
 go(val, word, null) -> dec_null();
 go(key, Class, {Type, Str}) -> dec_key(Class, Type, Str);
-go(array, [], []) -> [];
-go(array, [], Val) -> [Val];
-go(array, Vals, Val) -> lists:reverse([Val|lists:reverse(Vals)]);
-go(object, [], []) -> #{};
-go(object, [], Member) -> Member;
-go(object, Members, Member) -> maps:merge(Members, Member).
+go(array, Vals, Val) -> dec_array(Val, Vals);
+go(object, Members, Member) -> dec_object(Member, Members).
 
 dec_key(Class, Type, Str) ->
     case mason:get_opt(keys, string) of
@@ -45,6 +42,41 @@ dec_null() ->
         undefined -> undefined;
         null -> null
     end.
+
+dec_object(Member, Members) ->
+    case {mason:get_opt(object, map), Member, Members} of
+        {proplist,    nil, nil} -> [];
+        {proplist,     KV, nil} -> [KV];
+        {proplist,     KV, KVs} -> [KV|KVs];
+        {dmap,    nil, nil} -> #{};
+        {dmap, {K, V}, nil} -> #{K => [V]};
+        {dmap, {K, V},  Ms} -> upd_dmap(K, V, Ms);
+        {map,    nil, nil} -> #{};
+        {map, {K, V}, nil} -> #{K => V};
+        {map, {K, V},  Ms} -> Ms#{K => V}
+    end.
+
+upd_dmap(Key, Val, Ms) ->
+    maps:update_with(Key, fun(Vs) -> [Val|Vs] end, [Val], Ms).
+
+dec_array(Val, Vals) ->
+    case {mason:get_opt(array, list), Val, Vals} of
+        {list, nil, nil} -> [];
+        {list, Val, nil} -> [Val];
+        {list, Val, Vals} -> lists:reverse([Val|lists:reverse(Vals)]);
+        {tuple, nil, nil} -> {};
+        {tuple, Val, nil} -> {Val};
+        {tuple, Val, Vals} -> grow_tuple(Val, Vals)
+    end.
+
+grow_tuple(Val, Tuple0) ->
+    A = tuple_size(Tuple0)+1,
+    Tuple = erlang:make_tuple(A, []),
+    setelement(A, tuple_cp(Tuple0, Tuple), Val).
+
+tuple_cp(T0, T1) ->
+    CP = fun(I, N) -> setelement(I, N, element(I, T0)) end,
+    lists:foldl(CP, T1, lists:seq(1, tuple_size(T0))).
 
 %% kind of rfc 3339. we allow compact and verbose datetime, and frac.
 %% we drop the timezone.
